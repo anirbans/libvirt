@@ -3005,9 +3005,15 @@ qemuBuildControllerDevStr(const virDomainDef *domainDef,
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT:
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
-            virBufferAsprintf(&buf, "%s,port=0x%x,chassis=%d,id=%s",
-                              modelName, pciopts->port,
-                              pciopts->chassis, def->info.alias);
+            if (pciopts->hotplugEnabled) {
+                virBufferAsprintf(&buf, "%s,port=0x%x,chassis=%d,id=%s,hotplug=on",
+                                  modelName, pciopts->port,
+                                  pciopts->chassis, def->info.alias);
+            } else {
+                virBufferAsprintf(&buf, "%s,port=0x%x,chassis=%d,id=%s,hotplug=off",
+                                  modelName, pciopts->port,
+                                  pciopts->chassis, def->info.alias);
+            }
             break;
         case VIR_DOMAIN_CONTROLLER_MODEL_PCI_ROOT:
             virBufferAsprintf(&buf, "%s,index=%d,id=%s",

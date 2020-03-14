@@ -2241,6 +2241,7 @@ virDomainControllerDefNew(virDomainControllerType type)
         def->opts.pciopts.busNr = -1;
         def->opts.pciopts.targetIndex = -1;
         def->opts.pciopts.numaNode = -1;
+        def->opts.pciopts.hotplugEnabled = true;
         break;
     case VIR_DOMAIN_CONTROLLER_TYPE_XENBUS:
         def->opts.xenbusopts.maxGrantFrames = -1;
@@ -10910,6 +10911,7 @@ virDomainControllerDefParseXML(virDomainXMLOptionPtr xmlopt,
     int numaNode = -1;
     int ports = -1;
     VIR_XPATH_NODE_AUTORESTORE(ctxt);
+    int enabledVal;
     int rc;
     g_autofree char *typeStr = NULL;
     g_autofree char *idx = NULL;
@@ -10926,6 +10928,7 @@ virDomainControllerDefParseXML(virDomainXMLOptionPtr xmlopt,
     g_autofree char *ioeventfd = NULL;
     g_autofree char *portsStr = NULL;
     g_autofree char *iothread = NULL;
+    g_autofree char *enabled = NULL;
 
     ctxt->node = node;
 
@@ -11121,11 +11124,26 @@ virDomainControllerDefParseXML(virDomainXMLOptionPtr xmlopt,
             if (rc == 1)
                 def->opts.pciopts.pcihole64 = true;
             def->opts.pciopts.pcihole64size = VIR_DIV_UP(bytes, 1024);
+            break;
+        }
+        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT: {
+            enabled = virXMLPropString(node, "hotplug");
+            if (enabled) {
+                enabledVal = virTristateSwitchTypeFromString(enabled);
+                if (enabledVal < 0) {
+                    virReportError(VIR_ERR_CONFIG_UNSUPPORTED,
+                                   _("unknown enable value '%s'"), enabled);
+                    goto cleanup;
+                }
+                if (enabledVal == VIR_TRISTATE_SWITCH_OFF) {
+                    def->opts.pciopts.hotplugEnabled = false;
+                }
+                VIR_DEBUG("%s (%s): hotplugging %d", modelName, idx, enabledVal);
+            }
         }
         case VIR_DOMAIN_CONTROLLER_MODEL_PCI_BRIDGE:
         case VIR_DOMAIN_CONTROLLER_MODEL_DMI_TO_PCI_BRIDGE:
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_TO_PCI_BRIDGE:
-        case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_ROOT_PORT:
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_UPSTREAM_PORT:
         case VIR_DOMAIN_CONTROLLER_MODEL_PCIE_SWITCH_DOWNSTREAM_PORT:
         case VIR_DOMAIN_CONTROLLER_MODEL_PCI_EXPANDER_BUS:

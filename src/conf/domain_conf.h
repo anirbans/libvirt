@@ -722,6 +722,12 @@ struct _virDomainPCIControllerOpts {
      * item in memory target config) -1 == unspecified
      */
     int numaNode;
+    /*
+     * the following indicates whether the pci slot is hotplug enabled or
+     * disabled. This will help to prevent some guests (mostly Windows) to
+     * hot unplug the cpi device
+     */
+    bool hotplugEnabled;
 };
 
 struct _virDomainUSBControllerOpts {
